@@ -11,6 +11,7 @@ options(expressions=1e5) #This option is necessary to perform a great number of 
 
 tree=read.tree("gtdb_r86.ssu.bacteria.fasttree_name_pruneado_bueno.tree") #The tree is loaded here
 tab_info_pair=read.table("tab_info_pair.txt") #Within this table we have all the distances values (Jaccard and 16S) for each  posible pair.
+tab_info_pair$comb<-paste(tab_info_pair$V1,tab_info_pair$V2,sep = "")
 
 ####With this function we are able to get all the information from the nodes and leaves, their ID and given name
 
@@ -65,10 +66,10 @@ for(i in 1:length(nodes_list)) #This loop is the core of the script. It will go 
     }
     
     val_ecdf=ecdf(tab_random[tab_random$X1==length(leaves),2:1001]) #The ecdf funcion is created here
-   
+    
     vector1=NULL #Here we save the leaves names from each descendant
     vector2=NULL
-      
+    
     for(o in 1:length(descendant_nodes1))
     {
       vector1=c(vector1,edge_table[edge_table$child==descendant_nodes1[o],4])  
@@ -87,21 +88,16 @@ for(i in 1:length(nodes_list)) #This loop is the core of the script. It will go 
     leaves_combinations$Var2=as.character(leaves_combinations$Var2)
     
     values_j=NULL #Within this vector we will save all jaccard values from the pairwise of all leaves
-   
-    for(o in 1:dim(leaves_combinations)[1])
-    {
-      if(isEmpty(tab_info_pair[tab_info_pair$V1==leaves_combinations[o,1]&tab_info_pair$V2==leaves_combinations[o,2],4]))
-      {
-        values_j=c(values_j,tab_info_pair[tab_info_pair$V2==leaves_combinations[o,1]&tab_info_pair$V1==leaves_combinations[o,2],4])
-      }else
-      {
-        values_j=c(values_j,tab_info_pair[tab_info_pair$V1==leaves_combinations[o,1]&tab_info_pair$V2==leaves_combinations[o,2],4])
-      }
-    }
+  
+    combinations_parse<-paste(leaves_combinations$Var1,leaves_combinations$Var2,sep = "") #Here we extract all the jaccard values from al the combinationes of leaves calculated
+    values_j<-tab_info_pair[tab_info_pair$comb %in% combinations_parse,4]
     
+    combinations_parse<-paste(leaves_combinations$Var2,leaves_combinations$Var1,sep = "")
+    values_j<-c(values_j,tab_info_pair[tab_info_pair$comb %in% combinations_parse,4])
+
     if(length(leaves)>2 & (length(descendant_nodes1)>1 | length(descendant_nodes2)>1)) #Here we create a vector of values from the means and number of pairwise we got from all descendants and the new combinations created beetween each descendant
-	{
-		values_j=as.vector(c(values_j,rep(means_node_tab[means_node_tab$X1==descendant_nodes[1],2],means_node_tab[means_node_tab$X1==descendant_nodes[1],3]),rep(means_node_tab[means_node_tab$X1==descendant_nodes[2],2],means_node_tab[means_node_tab$X1==descendant_nodes[2],3])))
+    {
+      values_j=as.vector(c(values_j,rep(means_node_tab[means_node_tab$X1==descendant_nodes[1],2],means_node_tab[means_node_tab$X1==descendant_nodes[1],3]),rep(means_node_tab[means_node_tab$X1==descendant_nodes[2],2],means_node_tab[means_node_tab$X1==descendant_nodes[2],3])))
     }
     
     if(val_ecdf(mean(values_j))>0.05 & length(leaves)>=5) #Here we check if our node passes the threeshold of the ecdf function. In case the p-value obtained is greater of 0.05, the node is considerated as "bad" and its leaves are saved to avoid the evaluation of the subsequents nodes that posseses the sames leaves
@@ -126,11 +122,9 @@ for(i in 1:length(nodes_list)) #This loop is the core of the script. It will go 
       }
     }else
     {
-      means_node_tab[p,3]=dim(leaves_combinations)[1] #Si el nodo es multifurcado, solo nos quedamos con el número de pairwise que tiene dicho nodo
+      means_node_tab[p,3]=dim(leaves_combinations)[1] #If the node is multifurcated, we only keep the number of pairwise generated in that node
     }
     
     p=p+1
   }
 }
-
-
