@@ -21,114 +21,101 @@ isEmpty <- function(x) { #This function checks if a data frame is empty or not
 }
 Nodes_info = function( node,taxono,p4,data_out_res){ #This function gets the node name and prints the information for each node: number of leaves, jaccard and 16S mean and taxonomy
   
-    mini=extract.clade(input_tree,as.character(node)) #We extract the subtree for each node, to get their leaves
-    taxa_data<-data.frame(matrix(ncol=2))
-    taxa_data[1,1]<-"dummy"
-    taxa_data[1,2]<-0
-    taxa_data2<-data.frame(matrix(ncol=3,nrow=7))
-    taxa_data2[,1]<-c("d","p","c","o","f","g","s")
-    taxa_data2[,2]<-0
-    concat_taxo=NULL
-    cont=2
+  mini=extract.clade(input_tree,as.character(node)) #We extract the subtree for each node, to get their leaves
+  taxa_data<-data.frame(matrix(ncol=2))
+  taxa_data[1,1]<-"dummy"
+  taxa_data[1,2]<-0
+  taxa_data2<-data.frame(matrix(ncol=3,nrow=7))
+  taxa_data2[,1]<-c("d","p","c","o","f","g","s")
+  taxa_data2[,2]<-0
+  concat_taxo=NULL
+  cont=2
+  
+  ### In this block, we get the taxonomy for each leave, save them and compute if each taxonomic range is represented at least by the 80% of the leaves
+  
+  for(o in 1:length(mini$tip.label)) 
+  {
+    taxa_each_one<-taxono[mini$tip.label[o]==taxono[,1],92]
     
-	### In this block, we get the taxonomy for each leave, save them and compute if each taxonomic range is represented at least by the 80% of the leaves
-	
-    for(o in 1:length(mini$tip.label)) 
+    node_taxonomy_each<-strsplit(taxa_each_one,split = ";")
+    
+    for(e in 1:length(node_taxonomy_each[[1]]))
     {
-      taxa_each_one<-taxono[mini$tip.label[o]==taxono[,1],92]
-      
-      node_taxonomy_each<-strsplit(taxa_each_one,split = ";")
-      
-      for(e in 1:length(node_taxonomy_each[[1]]))
+      if(isEmpty(taxa_data[taxa_data[,1]==node_taxonomy_each[[1]][e],2]))
       {
-        if(isEmpty(taxa_data[taxa_data[,1]==node_taxonomy_each[[1]][e],2]))
-        {
-          taxa_data[cont,1]<-node_taxonomy_each[[1]][e]
-          taxa_data[cont,2]<-1
-          cont=cont+1
-        }else
-        {
-          taxa_data[taxa_data[,1]==node_taxonomy_each[[1]][e],2]<-taxa_data[taxa_data[,1]==node_taxonomy_each[[1]][e],2]+1
-        }
-      }
-    }
-    
-    taxa_data<-taxa_data[-1,]
-    
-    for(e in 1:dim(taxa_data)[1])
-    {
-      node_taxonomy_each<-(strsplit(taxa_data[e,1],split = "_"))[[1]]
-      
-      if(taxa_data2[taxa_data2[,1]==node_taxonomy_each[1],2]<taxa_data[e,2])
-      {
-        taxa_data2[taxa_data2[,1]==node_taxonomy_each[1],2]=taxa_data[e,2]
-        taxa_data2[taxa_data2[,1]==node_taxonomy_each[1],3]=node_taxonomy_each[3]
-      }
-    }
-    
-    taxa_data2[,2]<-taxa_data2[,2]/length(mini$tip.label)
-    b_impr=0
-    
-    for(e in 1:dim(taxa_data2)[1])
-    {
-      if(taxa_data2[e,2]>0.8 & b_impr==0)
-      {
-        concat_taxo=paste(concat_taxo,";",taxa_data2[e,1],"__",taxa_data2[e,3],sep="")
+        taxa_data[cont,1]<-node_taxonomy_each[[1]][e]
+        taxa_data[cont,2]<-1
+        cont=cont+1
       }else
       {
-        b_impr=1
+        taxa_data[taxa_data[,1]==node_taxonomy_each[[1]][e],2]<-taxa_data[taxa_data[,1]==node_taxonomy_each[[1]][e],2]+1
       }
     }
+  }
   
-	###Here we compute the jaccard and 16S mean for each node, as those values weren't saved properly by FunCongr.R
+  taxa_data<-taxa_data[-1,]
   
-	combinations_leaves=data.frame(expand.grid(mini$tip.label,mini$tip.label))
-
-	combinations_leaves$Var1=as.character(combinations_leaves$Var1)
-	combinations_leaves$Var2=as.character(combinations_leaves$Var2)
-
-	values_16S=NULL
-
-	for(o in 1:dim(combinations_leaves)[1])
-	{
-	  if(isEmpty(tab_info_pair[tab_info_pair$V1==combinations_leaves[o,1]&tab_info_pair$V2==combinations_leaves[o,2],3]))
-	  {
-		values_16S=c(values_16S,tab_info_pair[tab_info_pair$V2==combinations_leaves[o,1]&tab_info_pair$V1==combinations_leaves[o,2],3])
-	  }else
-	  {
-		values_16S=c(values_16S,tab_info_pair[tab_info_pair$V1==combinations_leaves[o,1]&tab_info_pair$V2==combinations_leaves[o,2],3])
-	  }
-	}
-
-	values_j=NULL
-
-	for(o in 1:dim(combinations_leaves)[1])
-	{
-	  if(isEmpty(tab_info_pair[tab_info_pair$V1==combinations_leaves[o,1]&tab_info_pair$V2==combinations_leaves[o,2],4]))
-	  {
-	   values_j=c(values_j,tab_info_pair[tab_info_pair$V2==combinations_leaves[o,1]&tab_info_pair$V1==combinations_leaves[o,2],4])
-	 }else
-	  {
-		values_j=c(values_j,tab_info_pair[tab_info_pair$V1==combinations_leaves[o,1]&tab_info_pair$V2==combinations_leaves[o,2],4])
-	  }
-	}
-  
-	##The info is saved into a list, and returned as a tree and data frame
-  
-	p4<-p4+
-    geom_cladelabel(edge_table[edge_table$par.name==node,1][1], paste(node,". #Leaves: ",length(mini$tip.label),". Jaccard: ",round(mean(values_j)),"±",round(sd(values_j)),". 16S: ",round(mean(values_16S)),"±",round(sd(values_16S)),". Taxonomy: ",concat_taxo,sep = ''), barsize=2, offset.text=1.5, hjust=0.5, fontsize=3)
+  for(e in 1:dim(taxa_data)[1])
+  {
+    node_taxonomy_each<-(strsplit(taxa_data[e,1],split = "_"))[[1]]
     
-	data_out_res<-rbind(c(node,edge_table[edge_table$par.name==node,1][1],length(mini$tip.label),round(mean(values_j)),round(sd(values_j)),round(mean(values_16S)),round(sd(values_16S)),concat_taxo),data_out_res)
-    
-    return(list("tree"=p4,"data"=data_out_res))
+    if(taxa_data2[taxa_data2[,1]==node_taxonomy_each[1],2]<taxa_data[e,2])
+    {
+      taxa_data2[taxa_data2[,1]==node_taxonomy_each[1],2]=taxa_data[e,2]
+      taxa_data2[taxa_data2[,1]==node_taxonomy_each[1],3]=node_taxonomy_each[3]
+    }
+  }
+  
+  taxa_data2[,2]<-taxa_data2[,2]/length(mini$tip.label)
+  b_impr=0
+  
+  for(e in 1:dim(taxa_data2)[1])
+  {
+    if(taxa_data2[e,2]>0.8 & b_impr==0)
+    {
+      concat_taxo=paste(concat_taxo,";",taxa_data2[e,1],"__",taxa_data2[e,3],sep="")
+    }else
+    {
+      b_impr=1
+    }
+  }
+  
+  ###Here we compute the jaccard and 16S mean for each node, as those values weren't saved properly by FunCongr.R
+  
+  combinations_leaves=data.frame(expand.grid(mini$tip.label,mini$tip.label))
+  
+  combinations_leaves$Var1=as.character(combinations_leaves$Var1)
+  combinations_leaves$Var2=as.character(combinations_leaves$Var2)
+  
+  values_16S=NULL
+  
+  values_j=NULL
+  
+  combinations_parse<-paste(combinations_leaves$Var1,combinations_leaves$Var2,sep = "")
+  values_j<-tab_info_pair[tab_info_pair$comb %in% combinations_parse,4]
+  values_16S<-tab_info_pair[tab_info_pair$comb %in% combinations_parse,3]
+  
+  combinations_parse<-paste(combinations_leaves$Var2,combinations_leaves$Var1,sep = "")
+  values_j<-c(values_j,tab_info_pair[tab_info_pair$comb %in% combinations_parse,4])
+  values_16S<-c(values_16S,tab_info_pair[tab_info_pair$comb %in% combinations_parse,3])
+  
+  ##The info is saved into a list, and returned as a tree and data frame
+  
+  p4<-p4+
+    geom_cladelabel(edge_table[edge_table$par.name==node,1][1], paste(node,". #Leaves: ",length(mini$tip.label),". Jaccard: ",round(mean(values_j),digits = 3),"Â±",round(sd(values_j),digits = 3),". 16S: ",round(mean(values_16S),digits = 3),"Â±",round(sd(values_16S),digits = 3),". Taxonomy: ",concat_taxo,sep = ''), barsize=2, offset.text=1.5, hjust=0.5, fontsize=3)
+  
+  data_out_res<-rbind(c(node,edge_table[edge_table$par.name==node,1][1],length(mini$tip.label),round(mean(values_j),digits = 3),round(sd(values_j),digits = 3),round(mean(values_16S),digits = 3),round(sd(values_16S),digits = 3),concat_taxo),data_out_res)
+  
+  return(list("tree"=p4,"data"=data_out_res))
 }
 
-tree=read.tree("gtdb_r86.ssu.bacteria.fasttree_name_pruned.tree") #Here we read the tree
+tree=read.tree("gtdb_r86.ssu.bacteria.fasttree_name_pruneado_bueno.tree") #Here we read the tree
 tab_info_pair=read.table("tab_info_pair.txt") #Within this table we have all the distances values (Jaccard and 16S) for each  posible pair
+tab_info_pair$comb<-paste(tab_info_pair$V1,tab_info_pair$V2,sep = "")
 require(data.table)
 taxono=as.data.frame(fread("bac_metadata_r86.tsv")) #The information of the taxonomy is loaded from this metadata table
 data_out_res=data.frame(matrix(ncol=8))
-colnames(data_out_res)=c("Nodo","ID","Leaves","Jaccard mean","Jaccard sd","16S mean","16S sd","Taxonomy")
+colnames(data_out_res)=c("Node","ID","Leaves","Jaccard mean","Jaccard sd","16S mean","16S sd","Taxonomy")
 colores_aleat<-c("#4af7b2","#f9c0b6","#e266b3","#692ed1","#a6fcce","#9597e2","#7882cc","#6b8c00","#c91f02","#bddcfc","#f29b8a","#515fcc","#554aba","#c987e5","#6feda1","#d67564","#d8d84e","#d1aa40","#92f464","#83f7c8","#f49e9c","#83ea94","#ffc966","#ffaae1","#e9ff89","#f2c59d","#99eafc","#95c2d8","#f9b8e0","#ea0edb","#cc6f1e","#def79e","#91e50b","#50e21b","#d64fa6","#afa7f2","#b6fca6","#ee4cf7","#72fff0","#32d164","#7aefe1","#2634af","#386ca0","#79cff7","#c0d838","#a9f77b","#87d7e5","#5bf21a","#ff0213","#c088d8","#f47a9b","#968fd6","#c9d7ff","#efc970","#e05be5","#0296e0","#bce866","#53a81e","#bbbcf7","#17e867","#f2214b","#0dc609","#d63960")
 cont_col_rand<-1
 input_tree<-tree
@@ -159,8 +146,15 @@ edge_table$chi.name=as.character(edge_table$chi.name)
 node_list=paste(unlist(read.table("bad_nodes.txt"))) #In this table we saved the info of the nodes considerated as "bad nodes" after the FunCogr.R script
 painted_leaves=NULL #We will save the leaves that are already painted on the tree to avoid reprinting them
 
-p4 <- ggtree(tree,layout="circular") + #First, we print the tree with the ggtree function
-#p4 <- ggtree(tree) +
+for (i in 1:length(node_list)) #Then, we print the info of all descendant nodes from all the "bad nodes" and save their leaves
+{
+  descendant_nodes=Descendants(input_tree,edge_table[edge_table$par.name==node_list[i],1],type = "child")[[1]]
+  
+  painted_leaves=c(painted_leaves,paste(unlist(Descendants(input_tree,descendant_nodes[1]))),paste(unlist(Descendants(input_tree,descendant_nodes[2]))))
+}
+
+#p4 <- ggtree(tree,layout="circular") + #First, we print the tree with the ggtree function
+  p4 <- ggtree(tree) +
   geom_tiplab(size=0)
 
 for (i in 1:length(node_list)) #Then, we print the info of all descendant nodes from all the "bad nodes" and save their leaves
@@ -172,7 +166,7 @@ for (i in 1:length(node_list)) #Then, we print the info of all descendant nodes 
   if(length(unlist(Descendants(input_tree,descendant_nodes[1])))>4) #We print squares over each descendant node and print the info for each one (number of leaves, means, sds and taxonomy)
   {
     p4<-p4+
-    geom_hilight(node=descendant_nodes[1], fill=colores_aleat[cont_col_rand], alpha=0.5)
+      geom_hilight(node=descendant_nodes[1], fill=colores_aleat[cont_col_rand], alpha=0.5)
     cont_col_rand<-cont_col_rand+1
     
     if(!is.na(edge_table[edge_table$parent==descendant_nodes[1],2][1]))
@@ -186,7 +180,7 @@ for (i in 1:length(node_list)) #Then, we print the info of all descendant nodes 
   if(length(unlist(Descendants(input_tree,descendant_nodes[2])))>4) #Here we do the same as before for the other descendant node
   {
     p4<-p4+
-    geom_hilight(node=descendant_nodes[2], fill=colores_aleat[cont_col_rand], alpha=0.5)
+      geom_hilight(node=descendant_nodes[2], fill=colores_aleat[cont_col_rand], alpha=0.5)
     cont_col_rand<-cont_col_rand+1
     
     if(!is.na(edge_table[edge_table$parent==descendant_nodes[2],2][1]))
@@ -207,15 +201,15 @@ for (i in 1:length(node_list)) #Then, we print the info of all descendant nodes 
   {
     p4<-p4+
       geom_hilight(node=sibling_node, fill=colores_aleat[cont_col_rand], alpha=0.5) #We paint the sibling node
-      cont_col_rand<-cont_col_rand+1
-      painted_leaves=c(painted_leaves,leaves)
-      
-      if(!is.na(edge_table[edge_table$parent==sibling_node,2][1])) #Here we get the information for this node too, as done before
-      {
-        nodes_out<-Nodes_info(edge_table[edge_table$parent==sibling_node,2][1],taxono,p4,data_out_res)
-        p4<-nodes_out$tree
-        data_out_res<-nodes_out$data
-      }
+    cont_col_rand<-cont_col_rand+1
+    painted_leaves=c(painted_leaves,leaves)
+    
+    if(!is.na(edge_table[edge_table$parent==sibling_node,2][1])) #Here we get the information for this node too, as done before
+    {
+      nodes_out<-Nodes_info(edge_table[edge_table$parent==sibling_node,2][1],taxono,p4,data_out_res)
+      p4<-nodes_out$tree
+      data_out_res<-nodes_out$data
+    }
   }
   
   for(o in 1:length(ancest_node)) #For each ancestor node we paint their siblings, in case their leaves aren't painted yet
@@ -230,7 +224,7 @@ for (i in 1:length(node_list)) #Then, we print the info of all descendant nodes 
       {
         p4<-p4+
           geom_hilight(node=sibling_node, fill=colores_aleat[cont_col_rand], alpha=0.5)
-          cont_col_rand<-cont_col_rand+1
+        cont_col_rand<-cont_col_rand+1
         painted_leaves=c(painted_leaves,leaves)
         
         if(!is.na(edge_table[edge_table$parent==sibling_node,2][1]))
@@ -252,8 +246,8 @@ p4<-p4+geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[1]
   geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[4],1], label=node_list[4], parse=T)) +
   geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[5],1], label=node_list[5], parse=T))
 
-pdf("tree_paint_jj_circ.pdf",height = 20, width = 20) #All information is printed and saved
-#pdf("tree_paint_8.pdf",height = 200, width = 20)
+#pdf("tree_paint_jj_circ.pdf",height = 20, width = 20) #All information is printed and saved
+pdf("tree_paint_8.pdf",height = 200, width = 20)
 plot(p4)
 dev.off()
 
