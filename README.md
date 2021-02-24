@@ -24,7 +24,8 @@ This document describes the use of FunCongr.R, as presented in "Assessment of ph
 
 **Files located in the same folder as the script**
 
-1- gtdb\_r86.ssu.bacteria.fasttree\_name\_pruned.tree 2- tab\_info\_pair.txt
+1- gtdb\_r86.ssu.bacteria.fasttree\_name\_pruned.tree 
+2- tab\_info\_pair.txt
 
 Before the use of the script itself we prepared the input data; First we transformed genome annotations into a binary presence/absence table of gene content per genome (COG annotations were employed for consistency, representing &gt;77% of the total annotations).
 
@@ -100,7 +101,9 @@ The results are later parsed with Paint\_tree.R, which reads in the same directo
 
 **Files located in the same folder as the script**
 
-1- gtdb\_r86.ssu.bacteria.fasttree\_name\_pruned.tree 2- tab\_info\_pair.txt 3- bac\_metadata\_r86.tsv(<https://data.gtdb.ecogenomic.org/releases/release86/86.0/bac_metadata_r86.tsv>) 4- bad\_nodes.txt
+1- gtdb\_r86.ssu.bacteria.fasttree\_name\_pruned.tree 
+2- tab\_info\_pair.txt 
+3- bac\_metadata\_r86.tsv(<https://data.gtdb.ecogenomic.org/releases/release86/86.0/bac_metadata_r86.tsv>) 4- bad\_nodes.txt
 
 **Resulting plot**
 
