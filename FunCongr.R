@@ -9,7 +9,7 @@ isEmpty <- function(x) { #This function checks if a data frame is empty or not
 
 options(expressions=1e5) #This option is necessary to perform a great number of permutations
 
-tree=read.tree("gtdb_r86.ssu.bacteria.fasttree_name_pruneado_bueno.tree") #The tree is loaded here
+tree=read.tree("gtdb_r86.ssu.bacteria.fasttree_name_pruned.tree") #The tree is loaded here
 tab_info_pair=read.table("tab_info_pair.txt") #Within this table we have all the distances values (Jaccard and 16S) for each  posible pair.
 tab_info_pair$comb<-paste(tab_info_pair$V1,tab_info_pair$V2,sep = "")
 
@@ -48,6 +48,9 @@ bad_leaves=NULL #Within this object we will save the tips from each node of the 
 
 means_node_tab=data.frame(matrix(ncol=3)) #In this table we will save the info of the node name, the mean of the node and the total number of pairwise combinations
 p=1
+
+list_tot_bad_nodes=data.frame(matrix(ncol=4))
+f_res=1
 
 for(i in 1:length(nodes_list)) #This loop is the core of the script. It will go over all nodes form last to first one, saving the info of the means and saving the leaves of the "bad nodes"
 {
@@ -103,6 +106,8 @@ for(i in 1:length(nodes_list)) #This loop is the core of the script. It will go 
     if(val_ecdf(mean(values_j))>0.05 & length(leaves)>=5) #Here we check if our node passes the threeshold of the ecdf function. In case the p-value obtained is greater of 0.05, the node is considerated as "bad" and its leaves are saved to avoid the evaluation of the subsequents nodes that posseses the sames leaves
     {
       print(paste(length(nodes_list)[1]-i+1,nodes_list[length(nodes_list)[1]-i+1],mean(values_j),sd(values_j))) #In the output, we will be able to identify a "bad node" as they will show the mean and sd of the computed jaccard
+      list_tot_bad_nodes[f_res,]=c(length(nodes_list)[1]-i+1,nodes_list[length(nodes_list)[1]-i+1],mean(values_j),sd(values_j))
+      f_res=f_res+1
       bad_leaves=c(bad_leaves,leaves)
     }
     
@@ -128,3 +133,5 @@ for(i in 1:length(nodes_list)) #This loop is the core of the script. It will go 
     p=p+1
   }
 }
+
+write.table(list_tot_bad_nodes[,2],"bad_nodes.txt",col.names =F,row.names = F,quote = F)

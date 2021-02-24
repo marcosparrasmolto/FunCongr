@@ -1,3 +1,117 @@
+---
+output: rmarkdown::github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse=TRUE, comment="##", fig.retina=2, fig.path = "README_figs/README-")
+```
+
+#**README**
+##**R code for: Parras-Moltó & Aguirre de Cárcer, 2019**
+
+This document describes the use of FunCongr.R, as presented in "Assessment of phylo-functional coherence along the bacterial phylogeny and taxonomy"" by Parras-Moltó and Aguirre de Cárcer (https://www.biorxiv.org/content/10.1101/795914v1).The procedure employed trees, taxonomic assignments, and 16S rRNA gene sequences from GTDB (https://gtdb.ecogenomic.org), as well as the full list of genome annotations from proGenomes (http://progenomes.embl.de/).
+
+```
+`r version[['version.string']]`
+```
+###**FunCongr.R**
+
+###**Dependencies**
+
+**Packages**
+
+· `ape` v`r packageVersion("ape")`. Analyses of phylogenetics and evolution
+
+· `tree` v`r packageVersion("tree")`. Fit a classification or regression tree
+
+· `gtools` v`r packageVersion("gtools")`. Various R programming tools
+
+· `phangorn` v`r packageVersion("phangorn")`. Phylogenetic analysis in R
+
+**Files located in the same folder as the script**
+
+1- gtdb_r86.ssu.bacteria.fasttree_name_pruned.tree
+2- tab_info_pair.txt
+
+```{r,echo=FALSE,warning=FALSE}
+library("ape")
+library("tree")
+library("gtools")
+library("phangorn") #Packages needed for the analysis
+
+#Functions
+
+isEmpty <- function(x) { #This function checks if a data frame is empty or not
+  return(length(x)==0)
+}
+```
+
+
+
+Before the use of the script itself we prepared the input data; First we transformed genome annotations into a binary presence/absence table of gene content per genome (COG annotations were employed for consistency, representing >77% of the total annotations). 
+
+```{r}
+tab_pres=read.table("info_cogs.txt",header=T)
+head(tab_pres[,1:8])
+```
+
+Then, for each pairwise comparison between genomes we produced 16S rRNA gene distances and Jaccard distances based on gene content (average of A-B and B-A), summarized in a four columns table (tab_info_pair.txt).Constant node labels were given to the input tree using makeNodeLabel from ape package in R (_name). Subsequently, the tree was pruned to contain only leaves with annotated genomes (_name_pruned).
+
+```{r}
+tree=read.tree("gtdb_r86.ssu.bacteria.fasttree_name_pruned.tree") #The tree is loaded here
+tab_info_pair=read.table("tab_info_pair.txt") #Within this table we have all the distances values (Jaccard and 16S) for each  posible pair.
+tab_info_pair$comb<-paste(tab_info_pair$V1,tab_info_pair$V2,sep = "")
+
+head(tab_info_pair[,1:5])
+```
+
+FunCongr.R reads the named_pruned tree, as well as the four columns table in the same directory, and prints out, fore each evaluated node, node name and hour (nodes passing the test) plus within-node average and standard deviation of Jaccard values (nodes failing the test, e.g. output_16s.log). The script does not evaluate nodes with fewer than 5 members or nodes presenting descendant nodes that already failed the test. Due to its nature, the script runs in a single processor, which, due to the size of the tree, translated into a lengthy (>400h) run.
+
+The output file is a list of so called "bad nodes". It is checked if our nodes passes the threeshold of the ecdf function. In case the p-value obtained is greater of 0.05, the node is considerated as "bad" and its leaves are saved to avoid the evaluation of the subsequents nodes that posseses the sames leaves.
+
+```{r}
+node_list=paste(unlist(read.table("bad_nodes.txt")))
+print(node_list)
+```
+
+###**Paint_tree.R**
+
+The results are later parsed with Paint_tree.R, which reads in the same directory the same tree and four columns table, as well as the metadata table containing the taxonomic affiliation of each leave (bac_metadata_r86.tsv) and a list of failing nodes identified with FunCongr.R (e.g. bad_nodes.txt). The scripts follows the rule that non-functionally coherent nodes are those that either failed the test or present a descendant node that failed the test. Then, for each last node were functional congruence was observed along each branching path it outputs a table with node ID, node label, number of leaves, and average plus standard deviation values of within-node 16S rRNA gene and Jaccard-based distances, and the node's 80% consensus taxonomy) (nodes_info.txt), as well as a painted tree as a pdf image. 
+
+###**Dependencies**
+
+**Packages**
+
+· `ape` v`r packageVersion("ape")`. Analyses of phylogenetics and evolution
+
+· `tree` v`r packageVersion("tree")`. Fit a classification or regression tree
+
+· `phangorn` v`r packageVersion("phangorn")`. Phylogenetic analysis in R
+
+· `phytools` v`r packageVersion("phytools")`. Phylogenetic tools for comparative biology (and other things)
+
+· `ggtree` v`r packageVersion("ggtree")`. Visualizing phylogenetic tree
+
+· `ggplot2` v`r packageVersion("ggplot2")`. Create elegant data visualisations using the grammar of graphics
+
+· `randomcoloR` v`r packageVersion("randomcoloR")`. Get a pretty random color
+
+· `tidygraph` v`r packageVersion("tidygraph")`. A tidy API for graph manipulation
+
+**Files located in the same folder as the script**
+
+1- gtdb_r86.ssu.bacteria.fasttree_name_pruned.tree
+2- tab_info_pair.txt
+3- bac_metadata_r86.tsv(https://data.gtdb.ecogenomic.org/releases/release86/86.0/bac_metadata_r86.tsv)
+4- bad_nodes.txt
+
+
+
+**Resulting plot**
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
 library("ape")
 library("phytools")
 library("tree")
@@ -101,8 +215,8 @@ Nodes_info = function( node,taxono,p4,data_out_res){ #This function gets the nod
   
   ##The info is saved into a list, and returned as a tree and data frame
   
-  p4<-p4+
-    geom_cladelabel(edge_table[edge_table$par.name==node,1][1], paste(node,". #Leaves: ",length(mini$tip.label),". Jaccard: ",round(mean(values_j),digits = 3),"±",round(sd(values_j),digits = 3),". 16S: ",round(mean(values_16S),digits = 3),"±",round(sd(values_16S),digits = 3),". Taxonomy: ",concat_taxo,sep = ''), barsize=2, offset.text=1.5, hjust=0.5, fontsize=3)
+  #p4<-p4+
+  #  geom_cladelabel(edge_table[edge_table$par.name==node,1][1], paste(node,". #Leaves: ",length(mini$tip.label),". Jaccard: ",round(mean(values_j),digits = 3),"Â±",round(sd(values_j),digits = 3),". 16S: ",round(mean(values_16S),digits = 3),"Â±",round(sd(values_16S),digits = 3),". Taxonomy: ",concat_taxo,sep = ''), barsize=2, offset.text=1.5, hjust=0.5, fontsize=3)
   
   data_out_res<-rbind(c(node,edge_table[edge_table$par.name==node,1][1],length(mini$tip.label),round(mean(values_j),digits = 3),round(sd(values_j),digits = 3),round(mean(values_16S),digits = 3),round(sd(values_16S),digits = 3),concat_taxo),data_out_res)
   
@@ -240,17 +354,26 @@ for (i in 1:length(node_list)) #Then, we print the info of all descendant nodes 
 }
 
 
-p4<-p4+geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[1],1], label=node_list[1], parse=T)) + #With this lines we paint the "bad nodes" on their position on the tree
-  geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[2],1], label=node_list[2], parse=T)) +
-  geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[3],1], label=node_list[3], parse=T)) +
-  geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[4],1], label=node_list[4], parse=T)) +
-  geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[5],1], label=node_list[5], parse=T))
+#p4<-p4+geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[1],1], label=node_list[1], parse=T)) + #With this lines we paint the "bad nodes" on their position on the tree
+#  geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[2],1], label=node_list[2], parse=T)) +
+ # geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[3],1], label=node_list[3], parse=T)) +
+  #geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[4],1], label=node_list[4], parse=T)) +
+  #geom_tiplab(aes(subset=node==edge_table[edge_table$par.name==node_list[5],1], label=node_list[5], parse=T))
 
 #pdf("tree_paint_jj_circ.pdf",height = 20, width = 20) #All information is printed and saved
-pdf("tree_paint_8.pdf",height = 200, width = 20)
+#pdf("tree_paint_8.pdf",height = 200, width = 20)
 plot(p4)
-dev.off()
+#dev.off()
 
 data_out_res=data_out_res[-dim(data_out_res)[1],]
 
-write.table(data_out_res,"nodes_info.txt",sep="\t",row.names = F,col.names = T)
+#write.table(data_out_res,"nodes_info.txt",sep="\t",row.names = F,col.names = T)
+```
+
+Resulting nodes info are saved to "node_info.txt" file, with the: "Node","ID","Leaves","Jaccard mean","Jaccard sd","16S mean","16S sd" and "Taxonomy" information fields.
+
+```{r}
+head(data_out_res)
+```
+
+
