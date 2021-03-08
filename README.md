@@ -28,7 +28,7 @@ This document describes the use of FunCongr.R, as presented in "Assessment of ph
 
 2- tab\_info\_pair.txt
 
-Before the use of the script itself we prepared the input data; First we transformed genome annotations into a binary presence/absence table of gene content per genome (COG annotations were employed for consistency, representing &gt;77% of the total annotations).
+Before the use of the script itself we prepared the input data; First we transformed genome annotations into a binary presence/absence table of gene content per genome (Only COG and NOG annotations were employed for consistency, representing &gt;77% of the total annotations).
 
 ``` r
 tab_pres=read.table("info_cogs.txt",header=T)
