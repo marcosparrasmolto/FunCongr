@@ -4,7 +4,7 @@
 
 ## **R code for: Parras-Moltó & Aguirre de Cárcer, 2019**
 
-This document describes the use of FunCongr.R, as presented in "Assessment of phylo-functional coherence along the bacterial phylogeny and taxonomy"" by Parras-Moltó and Aguirre de Cárcer (<https://www.biorxiv.org/content/10.1101/795914v1>).The procedure employed trees, taxonomic assignments, and 16S rRNA gene sequences from GTDB (<https://gtdb.ecogenomic.org>), as well as the full list of genome annotations from proGenomes (<http://progenomes.embl.de/>).
+This document describes the use of FunCongr.R, as presented in "Assessment of phylo-functional coherence along the bacterial phylogeny and taxonomy" by Parras-Moltó and Aguirre de Cárcer (<https://www.biorxiv.org/content/10.1101/795914v1>).The procedure employed trees, taxonomic assignments, and 16S rRNA gene sequences from GTDB (<https://gtdb.ecogenomic.org>), as well as the full list of genome annotations from proGenomes (<http://progenomes.embl.de/>).
 
     R version 3.6.1 (2019-07-05)
 
